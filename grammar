@@ -1,0 +1,25 @@
+https://stackoverflow.com/questions/265457/regex-bnf-grammar
+EXTRA:
+    *LEFT-RECURSION REMOVED
+    *LEFT FACTORED
+
+<RE>            ::= 	<simple-RE> <re-union>
+<re-union> 	    ::=	    "|" <RE> | <empty>
+<simple-RE>     ::=     <basic-RE> <concatenation>
+<concatenation> ::=     <simple-RE> | <empty>
+<basic-RE> 	    ::=	    <elementary-RE> <basic-RE-op>
+<basic-RE-op>   ::=     "*" | "+" | <empty>
+<elementary-RE> ::=	    <group> | <any> | <eos> | <char> | <set>
+<group> 	    ::= 	"(" <RE> ")"
+<any>       	::= 	"."
+<eos> 	        ::= 	"$"
+<char> 	        ::= 	any non metacharacter | "\" metacharacter
+<set> 	        ::= 	"[" <set-tail> "]"
+<set-tail>  	::= 	<set-items> | "^" <set-items>
+<set-items> 	::= 	<set-item> <set-items-tail>
+<set-items-tail>::=     <set-items> | <empty>
+<set-item> 	    ::= 	<char> <set-item-tail>
+<set-item-tail> ::=     <range> | <empty>
+<range>         ::=     "-" <char>
+
+RE -> simple-RE -> basic-RE -> elementary-RE
