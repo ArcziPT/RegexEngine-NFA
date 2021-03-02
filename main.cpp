@@ -5,7 +5,7 @@ void print(Node* n, int i){
         std::cout<<"\t";
     }
 
-    std::cout<<n->val<<std::endl;
+    std::cout<<*n<<std::endl;
     for(auto& c : n->child){
         print(c, i+1);
     }

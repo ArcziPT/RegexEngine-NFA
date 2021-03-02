@@ -12,7 +12,6 @@ enum PROD{
     ELEMENTARY,
     GROUP,
     ANY,
-    EOS,
     CHAR,
     SET,
     SET_TAIL,
@@ -32,11 +31,69 @@ struct Context{
     Node* n;
 };
 
+std::ostream& operator<<(std::ostream& os, const Node& n){
+    switch (n.type){
+        case Node::Type::CHAR:
+            os<<"CHAR -> "<<n.val;
+            break;
+        case Node::Type::ANY:
+            os<<"ANY";
+            break;
+        case Node::Type::BASIC:
+            os<<"BASIC";
+            break;
+        case Node::Type::CONCAT:
+            os<<"CONCAT";
+            break;
+        case Node::Type::ELEMENT:
+            os<<"ELEMENT";
+            break;
+        case Node::Type::GROUP:
+            os<<"GROUP";
+            break;
+        case Node::Type::NEG_SET_TAIL:
+            os<<"NEG_SET_TAIL";
+            break;
+        case Node::Type::POS_SET_TAIL:
+            os<<"POS_SET_TAIL";
+            break;
+        case Node::Type::RANGE:
+            os<<"RANGE";
+            break;
+        case Node::Type::RE:
+            os<<"RE";
+            break;
+        case Node::Type::SET:
+            os<<"SET";
+            break;
+        case Node::Type::SET_ITEM:
+            os<<"SET_ITEM";
+            break;
+        case Node::Type::SET_ITEM_TAIL:
+            os<<"SET_ITEM_TAIL";
+            break;
+        case Node::Type::SET_ITEMS:
+            os<<"SET_ITEMS";
+            break;
+        case Node::Type::SET_ITEMS_TAIL:
+            os<<"SET_ITEMS_TAIL";
+            break;
+        case Node::Type::SIMPLE:
+            os<<"SIMPLE";
+            break;
+        case Node::Type::UNION:
+            os<<"UNION";
+            break;
+    }
+
+    return os;
+}
+
 Node* RegexParser::parse(const std::string& regex){
     std::stringstream ss(std::move(regex));
     std::stack<Context> prods;
     
-    auto root = new Node("main", nullptr);
+    auto root = new Node("main", Node::Type::MAIN);
     prods.push({PROD::RE, root});
 
     while(!ss.eof() && !prods.empty()){
@@ -47,8 +104,7 @@ Node* RegexParser::parse(const std::string& regex){
         switch(ctx.prod)
         {
             case RE:{
-                auto nn = new Node("re", ctx.n);
-                nn->parent = ctx.n;
+                auto nn = new Node("", Node::Type::RE);
                 ctx.n->child.push_back(nn);
                 
                 prods.push({UNION, nn});
@@ -60,8 +116,7 @@ Node* RegexParser::parse(const std::string& regex){
                 if(c == '|'){
                     match(ss);
                     
-                    auto nn = new Node("union", ctx.n);
-                    nn->parent = ctx.n;
+                    auto nn = new Node("", Node::Type::UNION);
                     ctx.n->child.push_back(nn);
 
                     prods.push({RE, nn});
@@ -70,12 +125,11 @@ Node* RegexParser::parse(const std::string& regex){
             }
 
             case SIMPLE:{
-                auto nn = new Node("simple", ctx.n);
-                nn->parent = ctx.n;
-                ctx.n->child.push_back(nn);
+                //auto nn = new Node("", Node::Type::SIMPLE);
+                //ctx.n->child.push_back(nn);
 
-                prods.push({CONCAT, nn});
-                prods.push({BASIC, nn});
+                prods.push({CONCAT, ctx.n});
+                prods.push({BASIC, ctx.n});
                 break;
             }
 
@@ -90,8 +144,7 @@ Node* RegexParser::parse(const std::string& regex){
                 if(is_in)
                     break;
 
-                auto nn = new Node("concat", ctx.n);
-                nn->parent = ctx.n;
+                auto nn = new Node("", Node::Type::CONCAT);
                 ctx.n->child.push_back(nn);
                 
                 prods.push({SIMPLE, nn});
@@ -99,24 +152,21 @@ Node* RegexParser::parse(const std::string& regex){
             }
 
             case BASIC:{
-                auto nn = new Node("basic", ctx.n);
-                nn->parent = ctx.n;
-                ctx.n->child.push_back(nn);
+                //auto nn = new Node("", Node::Type::BASIC);
+                //ctx.n->child.push_back(nn);
                 
-                prods.push({BASIC_OP, nn});
-                prods.push({ELEMENTARY, nn});
+                prods.push({BASIC_OP, ctx.n});
+                prods.push({ELEMENTARY, ctx.n});
                 break;
             }
             
             case BASIC_OP:{
                 if(c == '*'){
-                    auto nn = new Node("*", ctx.n);
-                    nn->parent = ctx.n;
+                    auto nn = new Node("*", Node::Type::BASIC_OP);
                     ctx.n->child.push_back(nn);
                     match(ss);
                 }else if(c == '+'){
-                    auto nn = new Node("+", ctx.n);
-                    nn->parent = ctx.n;
+                    auto nn = new Node("+", Node::Type::BASIC_OP);
                     ctx.n->child.push_back(nn);
                     match(ss);
                 }
@@ -124,53 +174,38 @@ Node* RegexParser::parse(const std::string& regex){
             }
 
             case ELEMENTARY:{
-                auto nn = new Node("elementary", ctx.n);
-                nn->parent = ctx.n;
-                ctx.n->child.push_back(nn);
+                //auto nn = new Node("", Node::Type::ELEMENT);
+                //ctx.n->child.push_back(nn);
                 
                 switch(c)
                 {
                 case '(':
-                    prods.push({GROUP, nn});
+                    prods.push({GROUP, ctx.n});
                     break;
                 case '.':
-                    prods.push({ANY, nn});
-                    break;
-                case '$':
-                    prods.push({EOS, nn});
+                    prods.push({ANY, ctx.n});
                     break;
                 case '[':
-                    prods.push({SET, nn});
+                    prods.push({SET, ctx.n});
                     break;
                 default:
-                    prods.push({CHAR, nn});
+                    prods.push({CHAR, ctx.n});
                 }
                 break;
             }
 
             case GROUP:{
-                auto nn = new Node("group", ctx.n);
-                nn->parent = ctx.n;
-                ctx.n->child.push_back(nn);
+                //auto nn = new Node("", Node::Type::GROUP);
+                //ctx.n->child.push_back(nn);
                 
-                prods.push({RPAR, nn});
-                prods.push({RE, nn});
-                prods.push({LPAR, nn});
+                prods.push({RPAR, ctx.n});
+                prods.push({RE, ctx.n});
+                prods.push({LPAR, ctx.n});
                 break;
             }
 
             case ANY:{
-                auto nn = new Node("any", ctx.n);
-                nn->parent = ctx.n;
-                ctx.n->child.push_back(nn);
-                
-                match(ss);
-                break;
-            }
-
-            case EOS:{
-                auto nn = new Node("eos", ctx.n);
-                nn->parent = ctx.n;
+                auto nn = new Node("", Node::Type::ANY);
                 ctx.n->child.push_back(nn);
                 
                 match(ss);
@@ -190,19 +225,16 @@ Node* RegexParser::parse(const std::string& regex){
             case CHAR:{
                 if(c == '\\'){
                     std::string s = "";
-                    s += c;
                     match(ss);
                     s += next(ss);
                     match(ss);
 
-                    auto nn = new Node(s, ctx.n);
-                    nn->parent = ctx.n;
+                    auto nn = new Node(s, Node::Type::CHAR);
                     ctx.n->child.push_back(nn);
                 }else{
                     std::string s = "";
                     s += c;
-                    auto nn = new Node(s, ctx.n);
-                    nn->parent = ctx.n;
+                    auto nn = new Node(s, Node::Type::CHAR);
                     ctx.n->child.push_back(nn);
                     match(ss);
                 }
@@ -210,13 +242,12 @@ Node* RegexParser::parse(const std::string& regex){
             }
 
             case SET:{
-                auto nn = new Node("set", ctx.n);
-                nn->parent = ctx.n;
-                ctx.n->child.push_back(nn);
+                //auto nn = new Node("", Node::Type::SET);
+                //ctx.n->child.push_back(nn);
 
-                prods.push({RSQRBR, nn});
-                prods.push({SET_TAIL, nn});
-                prods.push({LSQRBR, nn});
+                prods.push({RSQRBR, ctx.n});
+                prods.push({SET_TAIL, ctx.n});
+                prods.push({LSQRBR, ctx.n});
                 break;
             }
 
@@ -233,14 +264,12 @@ Node* RegexParser::parse(const std::string& regex){
             case SET_TAIL:{
                 if(c == '^'){
                     match(ss);
-                    auto nn = new Node("neg-set-tail", ctx.n);
-                    nn->parent = ctx.n;
+                    auto nn = new Node("", Node::Type::NEG_SET_TAIL);
                     ctx.n->child.push_back(nn);
                     
                     prods.push({SET_ITEMS, nn});
                 }else{
-                    auto nn = new Node("pos-set-tail", ctx.n);
-                    nn->parent = ctx.n;
+                    auto nn = new Node("", Node::Type::POS_SET_TAIL);
                     ctx.n->child.push_back(nn);
                     
                     prods.push({SET_ITEMS, nn});
@@ -249,62 +278,49 @@ Node* RegexParser::parse(const std::string& regex){
             }
                 
             case SET_ITEMS:{
-                auto nn = new Node("set-items", ctx.n);
-                nn->parent = ctx.n;
-                ctx.n->child.push_back(nn);
+                //auto nn = new Node("set-items", Node::Type::SET_ITEMS);
+                //ctx.n->child.push_back(nn);
                 
-                prods.push({SET_ITEMS_TAIL, nn});
-                prods.push({SET_ITEM, nn});
+                prods.push({SET_ITEMS_TAIL, ctx.n});
+                prods.push({SET_ITEM, ctx.n});
                 break;
             }
 
             case SET_ITEMS_TAIL:{
                 auto set = {'(', ')', '[', ']', '*', '+', '|', '-', '^', '$', '.'};
                 bool is_in = false;
-                for(auto& c : set){
-                    if(next(ss) == c)
+                for(auto& s : set){
+                    if(s == c)
                         is_in = true;
                 }
 
                 if(is_in)
                     break;
 
-                auto nn = new Node("set-items-tail", ctx.n);
-                nn->parent = ctx.n;
-                ctx.n->child.push_back(nn);
+                //auto nn = new Node("", Node::Type::SET_ITEMS_TAIL);
+                //ctx.n->child.push_back(nn);
 
-                prods.push({SET_ITEMS, nn});
+                prods.push({SET_ITEMS, ctx.n});
                 break;
             }
 
             case SET_ITEM:{
-                auto nn = new Node("set-item", ctx.n);
-                nn->parent = ctx.n;
+                auto nn = new Node("", Node::Type::SET_ITEM);
                 ctx.n->child.push_back(nn);
                 
-                prods.push({SET_ITEM_TAIL, nn});
+                prods.push({RANGE, nn});
                 prods.push({CHAR, nn});
-                break;
-            }
-
-            case SET_ITEM_TAIL:{
-                if(next(ss) == '-'){
-                    auto nn = new Node("set-item-tail", ctx.n);
-                    nn->parent = ctx.n;
-                    ctx.n->child.push_back(nn);
-                    
-                    prods.push({RANGE, nn});
-                }
                 break;
             }
 
             case RANGE:{
-                auto nn = new Node("range", ctx.n);
-                nn->parent = ctx.n;
-                ctx.n->child.push_back(nn);
-                match(ss);
-                
-                prods.push({CHAR, nn});
+                if(c == '-'){
+                    auto nn = new Node("", Node::Type::RANGE);
+                    ctx.n->child.push_back(nn);
+                    
+                    match(ss);
+                    prods.push({CHAR, nn});
+                }
             }
         }
     }

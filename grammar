@@ -18,8 +18,7 @@ EXTRA:
 <set-tail>  	::= 	<set-items> | "^" <set-items>
 <set-items> 	::= 	<set-item> <set-items-tail>
 <set-items-tail>::=     <set-items> | <empty>
-<set-item> 	    ::= 	<char> <set-item-tail>
-<set-item-tail> ::=     <range> | <empty>
-<range>         ::=     "-" <char>
+<set-item> 	    ::= 	<char> <range>
+<range>         ::=     "-" <char> | <empty>
 
 RE -> simple-RE -> basic-RE -> elementary-RE
