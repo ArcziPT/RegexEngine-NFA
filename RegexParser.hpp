@@ -74,6 +74,11 @@ struct Node{
     friend std::ostream& operator<<(std::ostream& os, const Node& n);
 };
 
+struct RegexString{
+    std::stringstream ss;
+    int pos;
+};
+
 class RegexParser{
 public:
     RegexParser() = default;
@@ -81,8 +86,9 @@ public:
     static Node* parse(const std::string& regex);
 
 private:
-    static char next(std::stringstream& ss);
-    static void match(std::stringstream& ss);
+    static char next(RegexString& regex_str);
+    static void match(RegexString& regex_str, char c);
+
     static void re(std::stringstream& ss, Node* n);
     static void re_union(std::stringstream& ss, Node* n);
     static void simple_re(std::stringstream& ss, Node* n);

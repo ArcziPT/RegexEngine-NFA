@@ -1,7 +1,9 @@
 #include "RegexParser.hpp"
+#include "Exceptions.hpp"
 
 #include <stack>
 
+//Productions
 enum PROD{
     RE,
     UNION,
@@ -26,6 +28,8 @@ enum PROD{
     RSQRBR
 };
 
+//prod - production
+//n - parent in AST 
 struct Context{
     PROD prod;
     Node* n;
@@ -93,23 +97,30 @@ std::ostream& operator<<(std::ostream& os, const Node& n){
 }
 
 Node* RegexParser::parse(const std::string& regex){
-    std::stringstream ss(std::move(regex));
+    RegexString regex_str = {
+        .ss = std::stringstream(std::move(regex)),
+        .pos = 0
+    };
     std::stack<Context> prods;
     
+    //init AST
     auto root = new Node("main", Node::Type::MAIN);
     prods.push({PROD::RE, root});
 
-    while(!ss.eof() && !prods.empty()){
+    while(!regex_str.ss.eof() && !prods.empty()){
         auto ctx = prods.top();
         prods.pop();
-        auto c = next(ss);
+        auto c = next(regex_str); //lookahead
 
+        //"execute" production rule
         switch(ctx.prod)
         {
             case RE:{
+                //add new node to AST
                 auto nn = new Node("", Node::Type::RE);
                 ctx.n->child.push_back(nn);
                 
+                //push component rules
                 prods.push({UNION, nn});
                 prods.push({SIMPLE, nn});
                 break;
@@ -117,11 +128,7 @@ Node* RegexParser::parse(const std::string& regex){
             
             case UNION:{
                 if(c == '|'){
-                    match(ss);
-                    
-                    //auto nn = new Node("", Node::Type::UNION);
-                    //ctx.n->child.push_back(nn);
-
+                    match(regex_str, '|');
                     prods.push({RE, ctx.n});
                 }
                 break;
@@ -146,9 +153,6 @@ Node* RegexParser::parse(const std::string& regex){
 
                 if(is_in)
                     break;
-
-                //auto nn = new Node("", Node::Type::CONCAT);
-                //ctx.n->child.push_back(nn);
                 
                 prods.push({SIMPLE, ctx.n});
                 break;
@@ -167,19 +171,16 @@ Node* RegexParser::parse(const std::string& regex){
                 if(c == '*'){
                     auto nn = new Node("*", Node::Type::BASIC_OP);
                     ctx.n->child.push_back(nn);
-                    match(ss);
+                    match(regex_str, '*');
                 }else if(c == '+'){
                     auto nn = new Node("+", Node::Type::BASIC_OP);
                     ctx.n->child.push_back(nn);
-                    match(ss);
+                    match(regex_str, '+');
                 }
                 break;
             }
 
             case ELEMENTARY:{
-                //auto nn = new Node("", Node::Type::ELEMENT);
-                //ctx.n->child.push_back(nn);
-                
                 switch(c)
                 {
                 case '(':
@@ -198,9 +199,6 @@ Node* RegexParser::parse(const std::string& regex){
             }
 
             case GROUP:{
-                //auto nn = new Node("", Node::Type::GROUP);
-                //ctx.n->child.push_back(nn);
-                
                 prods.push({RPAR, ctx.n});
                 prods.push({RE, ctx.n});
                 prods.push({LPAR, ctx.n});
@@ -211,26 +209,26 @@ Node* RegexParser::parse(const std::string& regex){
                 auto nn = new Node("", Node::Type::ANY);
                 ctx.n->child.push_back(nn);
                 
-                match(ss);
+                match(regex_str, '.');
                 break;
             }
 
             case LPAR:{
-                match(ss);
+                match(regex_str, '(');
                 break;
             }
 
             case RPAR:{
-                match(ss);
+                match(regex_str, ')');
                 break;
             }
 
             case CHAR:{
                 if(c == '\\'){
                     std::string s = "";
-                    match(ss);
-                    s += next(ss);
-                    match(ss);
+                    match(regex_str, '\\');
+                    s += next(regex_str);
+                    match(regex_str, next(regex_str));
 
                     auto nn = new Node(s, Node::Type::CHAR);
                     ctx.n->child.push_back(nn);
@@ -239,15 +237,12 @@ Node* RegexParser::parse(const std::string& regex){
                     s += c;
                     auto nn = new Node(s, Node::Type::CHAR);
                     ctx.n->child.push_back(nn);
-                    match(ss);
+                    match(regex_str, next(regex_str));
                 }
                 break;
             }
 
             case SET:{
-                //auto nn = new Node("", Node::Type::SET);
-                //ctx.n->child.push_back(nn);
-
                 prods.push({RSQRBR, ctx.n});
                 prods.push({SET_TAIL, ctx.n});
                 prods.push({LSQRBR, ctx.n});
@@ -255,18 +250,18 @@ Node* RegexParser::parse(const std::string& regex){
             }
 
             case RSQRBR:{
-                match(ss);
+                match(regex_str, ']');
                 break;
             }
 
             case LSQRBR:{
-                match(ss);
+                match(regex_str, '[');
                 break;
             }
 
             case SET_TAIL:{
                 if(c == '^'){
-                    match(ss);
+                    match(regex_str, '^');
                     auto nn = new Node("", Node::Type::NEG_SET_TAIL);
                     ctx.n->child.push_back(nn);
                     
@@ -281,9 +276,6 @@ Node* RegexParser::parse(const std::string& regex){
             }
                 
             case SET_ITEMS:{
-                //auto nn = new Node("set-items", Node::Type::SET_ITEMS);
-                //ctx.n->child.push_back(nn);
-                
                 prods.push({SET_ITEMS_TAIL, ctx.n});
                 prods.push({SET_ITEM, ctx.n});
                 break;
@@ -300,9 +292,6 @@ Node* RegexParser::parse(const std::string& regex){
                 if(is_in)
                     break;
 
-                //auto nn = new Node("", Node::Type::SET_ITEMS_TAIL);
-                //ctx.n->child.push_back(nn);
-
                 prods.push({SET_ITEMS, ctx.n});
                 break;
             }
@@ -318,24 +307,27 @@ Node* RegexParser::parse(const std::string& regex){
 
             case RANGE:{
                 if(c == '-'){
-                    //auto nn = new Node("", Node::Type::RANGE);
-                    //ctx.n->child.push_back(nn);
-                    
-                    match(ss);
+                    match(regex_str, '-');
                     prods.push({CHAR, ctx.n});
                 }
             }
         }
+
+        regex_str.pos++;
     }
 
     return root;
 }
 
-char RegexParser::next(std::stringstream& ss){
-    return ss.peek();
+char RegexParser::next(RegexString& regex_str){
+    regex_str.pos++;
+    return regex_str.ss.peek();
 }
 
-void RegexParser::match(std::stringstream& ss){
+void RegexParser::match(RegexString& regex_str, char c){
     char x;
-    x = ss.get();
+    x = regex_str.ss.get();
+
+    if(x != c)
+        throw ParsingError(regex_str.pos, x);
 }
