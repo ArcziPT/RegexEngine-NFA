@@ -107,6 +107,7 @@ Frag RegexCompiler::handle_set_item(Node* root){
         for(char c = a; c <= b; c++){
             tran.is_accepted[c] = 1;
         }
+        tran.next = e;
         s->transitions.push_back(tran);
 
         return {s, e};
@@ -125,7 +126,7 @@ Frag RegexCompiler::handle_pos_set_tail(Node* root){
     for(auto& item : root->child){
         tran.is_accepted |= item->compiled.begin->transitions[0].is_accepted;
     }
-
+    tran.next = e;
     s->transitions.push_back(tran);
 
     return {s, e};
@@ -141,6 +142,7 @@ Frag RegexCompiler::handle_neg_set_tail(Node* root){
     for(auto& item : root->child){
         tran.is_accepted |= item->compiled.begin->transitions[0].is_accepted;
     }
+    tran.next = e;
 
     tran.is_accepted = ~tran.is_accepted;
     s->transitions.push_back(tran);
