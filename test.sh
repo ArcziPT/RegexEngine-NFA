@@ -1,2 +1,2 @@
 #!/bin/bash
-./test "x(a|b)+((xy)*(a|b))+" > res
+./test "x(a|b)+((xy)*(a|b))+" "xaaabxycb"

@@ -5,6 +5,14 @@
 #include <sstream>
 #include <vector>
 #include <array>
+#include <bitset>
+
+struct State;
+
+struct Transition{
+    std::bitset<256> is_accepted;
+    State* next;
+};
 
 /**
  * Type == CHAR:
@@ -18,23 +26,18 @@
  */ 
 struct State{
     enum Type{
-        CHAR,
-        RANGE,
-        ANY,
-        ALT,
-        ACCEPT
+        ACCEPT,
+        NOP,
+        STEP
     } type;
 
-    char a;
-    char b;
-
-    State* out1;
-    State* out2;
+    std::vector<Transition> transitions;
+    std::vector<State*> e_transition;
 };
 
 struct Frag{
-    State* state;
-    std::vector<State*> outs;
+    State* begin;
+    State* end;
 };
 
 struct Node{
@@ -75,29 +78,29 @@ class RegexParser{
 public:
     RegexParser() = default;
 
-    Node* parse(const std::string& regex);
+    static Node* parse(const std::string& regex);
 
 private:
-    char next(std::stringstream& ss);
-    void match(std::stringstream& ss);
-    void re(std::stringstream& ss, Node* n);
-    void re_union(std::stringstream& ss, Node* n);
-    void simple_re(std::stringstream& ss, Node* n);
-    void concat(std::stringstream& ss, Node* n);
-    void basic_re(std::stringstream& ss, Node* n);
-    void basic_re_op(std::stringstream& ss, Node* n);
-    void elementary_re(std::stringstream& ss, Node* n);
-    void group(std::stringstream& ss, Node* n);
-    void any(std::stringstream& ss, Node* n);
-    void eos(std::stringstream& ss, Node* n);
-    void ch(std::stringstream& ss, Node* n);
-    void set(std::stringstream& ss, Node* n);
-    void set_tail(std::stringstream& ss, Node* n);
-    void set_items(std::stringstream& ss, Node* n);
-    void set_items_tail(std::stringstream& ss, Node* n);
-    void set_item(std::stringstream& ss, Node* n);
-    void set_item_tail(std::stringstream& ss, Node* n);
-    void range(std::stringstream& ss, Node* n);
+    static char next(std::stringstream& ss);
+    static void match(std::stringstream& ss);
+    static void re(std::stringstream& ss, Node* n);
+    static void re_union(std::stringstream& ss, Node* n);
+    static void simple_re(std::stringstream& ss, Node* n);
+    static void concat(std::stringstream& ss, Node* n);
+    static void basic_re(std::stringstream& ss, Node* n);
+    static void basic_re_op(std::stringstream& ss, Node* n);
+    static void elementary_re(std::stringstream& ss, Node* n);
+    static void group(std::stringstream& ss, Node* n);
+    static void any(std::stringstream& ss, Node* n);
+    static void eos(std::stringstream& ss, Node* n);
+    static void ch(std::stringstream& ss, Node* n);
+    static void set(std::stringstream& ss, Node* n);
+    static void set_tail(std::stringstream& ss, Node* n);
+    static void set_items(std::stringstream& ss, Node* n);
+    static void set_items_tail(std::stringstream& ss, Node* n);
+    static void set_item(std::stringstream& ss, Node* n);
+    static void set_item_tail(std::stringstream& ss, Node* n);
+    static void range(std::stringstream& ss, Node* n);
 };
 
 #endif

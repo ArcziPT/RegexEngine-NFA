@@ -42,6 +42,9 @@ std::ostream& operator<<(std::ostream& os, const Node& n){
         case Node::Type::BASIC:
             os<<"BASIC";
             break;
+        case Node::Type::BASIC_OP:
+            os<<"BASIC_OP"<<n.val;
+            break;
         case Node::Type::CONCAT:
             os<<"CONCAT";
             break;
@@ -116,20 +119,20 @@ Node* RegexParser::parse(const std::string& regex){
                 if(c == '|'){
                     match(ss);
                     
-                    auto nn = new Node("", Node::Type::UNION);
-                    ctx.n->child.push_back(nn);
+                    //auto nn = new Node("", Node::Type::UNION);
+                    //ctx.n->child.push_back(nn);
 
-                    prods.push({RE, nn});
+                    prods.push({RE, ctx.n});
                 }
                 break;
             }
 
             case SIMPLE:{
-                //auto nn = new Node("", Node::Type::SIMPLE);
-                //ctx.n->child.push_back(nn);
+                auto nn = new Node("", Node::Type::SIMPLE);
+                ctx.n->child.push_back(nn);
 
-                prods.push({CONCAT, ctx.n});
-                prods.push({BASIC, ctx.n});
+                prods.push({CONCAT, nn});
+                prods.push({BASIC, nn});
                 break;
             }
 
@@ -144,19 +147,19 @@ Node* RegexParser::parse(const std::string& regex){
                 if(is_in)
                     break;
 
-                auto nn = new Node("", Node::Type::CONCAT);
-                ctx.n->child.push_back(nn);
+                //auto nn = new Node("", Node::Type::CONCAT);
+                //ctx.n->child.push_back(nn);
                 
-                prods.push({SIMPLE, nn});
+                prods.push({SIMPLE, ctx.n});
                 break;
             }
 
             case BASIC:{
-                //auto nn = new Node("", Node::Type::BASIC);
-                //ctx.n->child.push_back(nn);
+                auto nn = new Node("", Node::Type::BASIC);
+                ctx.n->child.push_back(nn);
                 
-                prods.push({BASIC_OP, ctx.n});
-                prods.push({ELEMENTARY, ctx.n});
+                prods.push({BASIC_OP, nn});
+                prods.push({ELEMENTARY, nn});
                 break;
             }
             
@@ -315,11 +318,11 @@ Node* RegexParser::parse(const std::string& regex){
 
             case RANGE:{
                 if(c == '-'){
-                    auto nn = new Node("", Node::Type::RANGE);
-                    ctx.n->child.push_back(nn);
+                    //auto nn = new Node("", Node::Type::RANGE);
+                    //ctx.n->child.push_back(nn);
                     
                     match(ss);
-                    prods.push({CHAR, nn});
+                    prods.push({CHAR, ctx.n});
                 }
             }
         }
