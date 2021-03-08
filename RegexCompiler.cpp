@@ -2,6 +2,11 @@
 
 #include <stack>
 
+/**
+ * Begining in the root we push all children on stack, and continue until we
+ * visit the same node second time, then we know that all of its children were allready compiled,
+ * so we can can now compile it.
+ */ 
 Frag RegexCompiler::compile(Node* root){
     std::stack<Node*> stack;
     stack.push(root);
@@ -49,7 +54,9 @@ Frag RegexCompiler::compile(Node* root){
                     break;
             }
 
+            //return
             if(stack.empty()){
+                //mark the last state as accepting
                 n->compiled.end->type = State::Type::ACCEPT;
                 return n->compiled;
             }
@@ -57,6 +64,18 @@ Frag RegexCompiler::compile(Node* root){
     }
 }
 
+/**
+ * For 'a':
+ *    a
+ * o---->o
+ * 
+ * ^     ^  
+ * |     |
+ * s     e
+ * 
+ * s - begining state
+ * e - finishing state
+ */
 Frag RegexCompiler::handle_char(Node* root){
     auto s = new State();
     auto e = new State();
@@ -72,6 +91,16 @@ Frag RegexCompiler::handle_char(Node* root){
     return {s, e};
 }
 
+/**
+ * o---->o
+ * 
+ * ^     ^  
+ * |     |
+ * s     e
+ * 
+ * s - begining state
+ * e - finishing state
+ */
 Frag RegexCompiler::handle_any(Node* root){
     auto s = new State();
     auto e = new State();
@@ -88,9 +117,9 @@ Frag RegexCompiler::handle_any(Node* root){
 }
 
 Frag RegexCompiler::handle_set_item(Node* root){
-    if(root->child.size() == 1){
+    if(root->child.size() == 1){ //one child -> char
         return root->child[0]->compiled;
-    }else if(root->child.size() == 2){
+    }else if(root->child.size() == 2){//2 children -> set
         auto a = root->child[0]->val[0];
         auto b = root->child[1]->val[0];
 
@@ -116,6 +145,7 @@ Frag RegexCompiler::handle_set_item(Node* root){
     //TODO: ERROR
 }
 
+//positive set
 Frag RegexCompiler::handle_pos_set_tail(Node* root){
     auto s = new State();
     auto e = new State();
@@ -132,6 +162,7 @@ Frag RegexCompiler::handle_pos_set_tail(Node* root){
     return {s, e};
 }
 
+//negateive set
 Frag RegexCompiler::handle_neg_set_tail(Node* root){
     auto s = new State();
     auto e = new State();
@@ -150,8 +181,9 @@ Frag RegexCompiler::handle_neg_set_tail(Node* root){
     return {s, e};
 }
 
+//handle +, * operators
 Frag RegexCompiler::handle_basic(Node* root){
-    if(root->child.size() == 1){
+    if(root->child.size() == 1){ //no operator
         return root->child[0]->compiled;
     }else if(root->child.size() == 2){
         auto re = root->child[0]->compiled;
@@ -167,8 +199,9 @@ Frag RegexCompiler::handle_basic(Node* root){
     }
 }
 
+//handle concatenation
 Frag RegexCompiler::handle_simple(Node* root){
-    if(root->child.size() == 1){
+    if(root->child.size() == 1){//no concatenation
         return root->child[0]->compiled;
     }else if(root->child.size() == 2){
         auto c1 = root->child[0]->compiled;
@@ -181,6 +214,7 @@ Frag RegexCompiler::handle_simple(Node* root){
     //TODO: error
 }
 
+//handle unions
 Frag RegexCompiler::handle_re(Node* root){
     if(root->child.size() == 1){
         return root->child[0]->compiled;
