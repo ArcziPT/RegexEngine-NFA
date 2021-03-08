@@ -240,6 +240,10 @@ Node* RegexParser::parse(const std::string& regex){
                 }else{
                     std::string s = "";
                     s += c;
+
+                    if(!std::isalpha(c))
+                        throw ParsingError(regex_str.pos, c);
+
                     auto nn = new Node(s, Node::Type::CHAR);
                     ctx.n->child.push_back(nn);
                     match(regex_str, next(regex_str));

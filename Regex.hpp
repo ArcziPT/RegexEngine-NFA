@@ -3,11 +3,15 @@
 
 #include "RegexCompiler.hpp"
 
+struct Match{
+    
+};
+
 class Regex{
 public:
     Regex(const std::string& regex);
 
-    bool match(const std::string& s);
+    bool check(const std::string& s);
 
 private:
     Frag nfa;

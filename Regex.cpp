@@ -31,7 +31,7 @@ std::vector<State*> Regex::handle_state(State* s, char c){
     return states;
 }
 
-bool Regex::match(const std::string& s){
+bool Regex::check(const std::string& s){
     std::vector<std::vector<State*>> states;
     states.push_back({});
 
