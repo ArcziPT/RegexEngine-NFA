@@ -2,6 +2,7 @@
 #include "Exceptions.hpp"
 
 #include <stack>
+#include <cctype>
 
 //Productions
 enum PROD{
@@ -227,6 +228,10 @@ Node* RegexParser::parse(const std::string& regex){
                 if(c == '\\'){
                     std::string s = "";
                     match(regex_str, '\\');
+
+                    if(std::isalpha(next(regex_str)))
+                        throw ParsingError(regex_str.pos, next(regex_str));
+
                     s += next(regex_str);
                     match(regex_str, next(regex_str));
 
